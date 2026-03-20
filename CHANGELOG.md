@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is intentionally simple and optimized for release notes and repository readers.
 
+## [Unreleased]
+
+### Added
+
+- Reusable `templates/README_PREFIX_WAYTOAIC.md` block for future Way to AIC GitHub repositories
+
+### Changed
+
+- Added the fixed `Way to AIC` brand and community prefix to the top of `README.md`
+
 ## [v1.0.0] - 2026-03-20
 
 First public release.
