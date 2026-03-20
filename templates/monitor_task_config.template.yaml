@@ -1,0 +1,143 @@
+# Reddit 监控任务配置模板
+#
+# 用途：
+# - 当用户只有模糊需求，还没有现成 config 时，先用这份模板生成“可运行的最小配置”
+# - 默认遵守：一个监控任务对应一个 config
+# - 新任务先从 1 个 monitor_group 起步，跑通后再扩展
+#
+# 推荐文件名：
+# - configs/<task_slug>.yaml
+#
+# 使用顺序：
+# 1. 先补齐 setup_answers
+# 2. 再补齐 monitor_groups[0]
+# 3. 最后按需要追加第二个组，而不是一开始就塞很多组
+
+skill:
+  name: reddit-market-monitor
+  task_name: "<task_slug>"
+  task_name_cn: "<中文任务名>"
+  language: zh-CN
+
+business_context:
+  market: "<例如 Amazon US / SaaS / DTC / 游戏硬件>"
+  category_focus: "<你想监控的产品、品类、竞品或场景>"
+  primary_goal_cn: "<这份监控最终是为了支持什么决策>"
+  report_consumer_cn: "<谁来读这份报告，例如产品经理/运营负责人/创始人>"
+
+setup_answers:
+  product_or_topic: "<监控对象>"
+  target_users:
+    - "<目标用户 1>"
+  desired_outputs:
+    - "<例如 用户痛点>"
+    - "<例如 竞品迁移原因>"
+    - "<例如 FAQ/内容角度>"
+  must_watch_subreddits:
+    - "<例如 r/example>"
+  must_watch_keywords:
+    - "<例如 keyword>"
+  report_frequency: daily
+  report_timezone: America/Los_Angeles
+
+schedule:
+  timezone: "<报告时区>"
+  daily_digest_time: "17:00"
+  weekly_report_day: "MON"
+  weekly_report_time: "09:00"
+
+monitoring_defaults:
+  modes:
+    - hot
+    - new
+    - top
+    - search
+  top_period: week
+  max_posts_per_subreddit_per_mode: 10
+  max_search_results_per_keyword: 10
+  max_comments_per_post: 20
+  dedupe_across_modes: true
+  dedupe_across_groups: false
+
+curation_defaults:
+  min_post_score_for_report: 65
+  min_voice_score_for_archive: 80
+
+reporting:
+  output_language: zh-CN
+  generate_group_reports_separately: true
+  generate_master_summary: false
+  rendering_preferences:
+    tables_first: true
+    signals_format: table
+    action_items_format: table
+    archive_entries_format: table
+    shortlist_format: table
+
+monitor_groups:
+  - group_id: "<english_task_id>"
+    group_name_cn: "<中文组名>"
+    enabled: true
+    priority: 5
+    report_mode: separate
+
+    goal_cn:
+      - "<这个组最想回答的业务问题>"
+
+    report_focus_cn:
+      - "<报告最该强调什么>"
+
+    archive_focus_cn:
+      - "<最值得长期沉淀哪类原声>"
+
+    product_lines:
+      - "<对应产品线 / 主题>"
+
+    target_users:
+      - "<目标用户>"
+
+    subreddits:
+      core:
+        - name: "<r/example>"
+          priority: 5
+          note: "<为什么监控这个社区>"
+      scenario: []
+      adjacent: []
+      competitor: []
+      watchlist: []
+
+    keywords:
+      category:
+        - "<品类词>"
+      pain_points:
+        - "<痛点词>"
+      feature_requests:
+        - "<功能诉求词>"
+      use_cases:
+        - "<场景词>"
+      buying_intent:
+        - "<购买意图词>"
+      competitor_keywords:
+        - "<竞品词>"
+
+    curation_overrides:
+      include_signals:
+        - pain_point
+        - feature_request
+        - buying_question
+        - competitor_mention
+        - comparison
+      exclude_content:
+        - memes
+        - low_effort_jokes
+      min_post_score_for_report: 68
+
+    archive_overrides:
+      min_voice_score_for_archive: 78
+
+starter_checklist:
+  - "是否已经明确这是一个单独监控任务，而不是多个不相关目标的合集？"
+  - "subreddit 是否控制在 3-6 个高相关来源内？"
+  - "关键词是否同时覆盖品类词、痛点词、场景词、竞品词？"
+  - "report_focus_cn 是否能回答“这份报告最后要服务什么决策”？"
+  - "archive_focus_cn 是否能回答“哪些用户原话最值得长期积累”？"

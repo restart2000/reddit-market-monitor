@@ -1,0 +1,734 @@
+# Reddit 市场监控 Skill 配置文件（config.yaml）
+#
+# 使用说明：
+# 1. 本文件只放“可配置项”，不放长篇执行逻辑。
+# 2. skills.md 负责定义完整流程、判断规则、报告模板、原声存档机制。
+# 3. 本文件已内置“默认测试值”，以 AI 眼镜配件场景为例，可直接跑通测试。
+# 4. 本文件支持“多组监控”（monitor_groups = 多个监控组），每组都可以单独配置目标、子贴吧、关键词与报告重点。
+# 5. 推荐采用“一个监控任务对应一个 config”的方式组织配置；如果有多个彼此独立的监控目标，建议拆成多个 config 文件。
+# 6. 为了兼容工具与后续自动化，部分键名、标签名、字段名保留英文；所有关键英文术语均在注释或 glossary（术语表）中提供中文说明。
+
+skill:
+  name: reddit-market-monitor # Skill 英文名
+  name_cn: Reddit 市场监控 # Skill 中文名
+  version: 1.3.0 # 当前版本
+  language: zh-CN # 报告输出语言；zh-CN = 简体中文
+  description: "监控 Reddit 子贴吧与关键词，输出日报/周报，并沉淀高价值用户原声。"
+
+tooling:
+  required_skills:
+    - skills/reddit-readonly # 兼容旧字段；现已内置，不需要用户单独安装
+  bundled_subskills:
+    - path: skills/reddit-readonly # 已内置的 Reddit 只读子技能
+      purpose: 浏览、搜索、读取评论，不做交互
+  reddit_auth_required: false # false = 不需要 Reddit 账号鉴权
+  read_only: true # true = 严格只读
+
+config_strategy:
+  recommendation: one_task_one_config # 推荐按“一个监控任务一个 config”组织
+  starter_template_path: templates/monitor_task_config.template.yaml # 新任务优先从这个模板生成
+  config_naming_pattern: "configs/<task_slug>.yaml" # 建议的命名方式
+  start_with_single_monitor_group: true # 新任务先从 1 个 monitor_group 起步
+  split_when_goals_are_unrelated: true # 目标彼此独立时应拆成多个 config
+
+schedule:
+  timezone: America/Los_Angeles # 时区；默认按美国洛杉矶时间执行
+  daily_digest_time: "17:00" # 日报时间
+  weekly_report_day: "MON" # 周报星期；MON = 周一
+  weekly_report_time: "09:00" # 周报时间
+
+memory:
+  preference_memory_name: reddit_monitor_preferences # 偏好记忆库：记录喜欢/不喜欢的内容
+  preference_learning_enabled: true # 是否持续学习偏好
+  ask_feedback_after_daily: true # 日报后是否询问反馈
+  soft_preference_confirmation_count: 2 # 软偏好至少被重复反馈几次后，再升级为稳定规则
+
+  archive_memory_name: reddit_user_voice_archive # 用户原声存档记忆库
+  archive_theme_memory_name: reddit_theme_memory # 主题热度/重复主题记忆库
+  group_summary_memory_name: reddit_group_summary_memory # 多组监控的组级摘要记忆库
+  theme_window_days: 7 # 主题记忆默认观察窗口；用于判断重复问题、趋势与共识
+
+monitoring_defaults:
+  # modes = 抓取模式
+  modes:
+    - hot # 热门
+    - new # 最新
+    - top # 高赞 / 高排名
+    - search # 关键词搜索
+  top_period: week # top 的时间窗口；week = 最近一周
+  max_posts_per_subreddit_per_mode: 10 # 每个子贴吧、每种模式最多抓多少帖子
+  max_search_results_per_keyword: 10 # 每个关键词最多抓多少搜索结果
+  max_comments_per_post: 20 # 单贴最多抓多少条评论
+  require_comment_pull_for_high_priority_posts: true # 高优先级帖子是否强制拉评论
+  dedupe_across_modes: true # 是否跨模式去重
+  dedupe_across_groups: false # 是否跨监控组直接去重；默认 false，允许同一帖子在不同组中被不同视角分析
+  cross_group_merge_same_permalink_in_archive: true # 原声存档时，若 permalink 相同，可合并为同一条存档并记录多组命中
+
+# glossary = 术语表 / 中英对照表
+# 说明：后面所有英文标签、模式、字段，默认以此处中文释义为准。
+glossary:
+  modes:
+    hot: 热门
+    new: 最新
+    top: 高赞/高排名
+    search: 关键词搜索
+
+  signal_tags:
+    pain_point: 用户痛点
+    feature_request: 功能诉求
+    buying_question: 购买问题 / 购买前咨询
+    buying_intent: 购买意图
+    use_case: 使用场景
+    product_failure: 产品故障 / 失效
+    competitor_mention: 提及竞品
+    comparison: 对比讨论
+    workaround: 替代做法 / 土办法 / 绕过方案
+    support_issue: 使用疑问 / 售后问题
+    sentiment_positive: 正向情绪 / 正面反馈
+    sentiment_negative: 负向情绪 / 负面反馈
+    emerging_trend: 新兴趋势
+    objection: 购买顾虑 / 使用顾虑
+    unmet_need: 未满足需求
+    review_risk: 潜在差评风险
+    support_confusion: 容易误解或不会用
+
+  business_use_tags:
+    product_design: 产品设计
+    product_iteration: 产品迭代
+    new_sku_opportunity: 新 SKU 机会
+    listing_copy: Listing 文案
+    faq: FAQ / 常见问题
+    customer_support: 客服话术
+    ad_creative: 广告创意
+    content_angle: 内容选题 / 内容角度
+    influencer_brief: 红人 Brief / 红人沟通点
+    competitor_attack_angle: 竞品对位 / 差异化攻击点
+    review_risk_prevention: 差评预防
+
+  report_sections:
+    executive_summary: 摘要结论
+    top_signals: 高价值信号
+    product_development_actions: 产品开发动作
+    operations_actions: 运营动作
+    competitor_watch: 竞品观察
+    new_voice_archive_entries: 新增用户原声存档
+    manual_review_shortlist: 待人工复核清单
+    preference_feedback: 偏好反馈
+    weekly_summary: 周度摘要
+    theme_clusters: 主题聚类
+    product_recommendations: 产品建议
+    operations_recommendations: 运营建议
+    competitor_landscape: 竞品格局
+    trend_watch: 趋势观察
+    decision_board: 决策板
+
+  archive_fields_dictionary:
+    archive_id: 存档唯一编号
+    archived_at: 存档时间
+    source_type: 来源类型（post = 主帖；comment = 评论）
+    group_id: 主命中组 ID；表示首次或主视角归属的监控组
+    matched_groups: 命中的监控组列表
+    subreddit: 来源子贴吧
+    post_title: 原帖标题
+    permalink: 原帖/原评论链接
+    author: 作者名
+    exact_quote: 用户原声原文
+    normalized_quote: 轻度标准化后的原声，用于查重
+    summary_cn: 中文摘要
+    signal_tags: 信号标签
+    business_use_tags: 业务用途标签
+    sentiment: 情绪倾向
+    priority: 优先级
+    repeat_count: 重复出现次数
+    why_valuable: 为什么有价值
+    product_implication: 对产品开发的启发
+    operations_implication: 对运营的启发
+    recommended_action: 建议动作
+
+  monitor_group_fields_dictionary:
+    group_id: 监控组唯一 ID
+    group_name_cn: 监控组中文名
+    enabled: 是否启用当前监控组
+    priority: 执行优先级；数字越大越先跑
+    report_mode: 报告模式；separate = 单独成组输出
+    goal_cn: 组级业务目标
+    product_lines: 重点产品线 / 配件方向
+    target_users: 重点目标用户
+    report_focus_cn: 报告优先强调的内容
+    archive_focus_cn: 原声存档优先收集的内容
+    subreddits: 目标 subreddit 列表
+    keywords: 目标关键词分桶
+    schedule_override: 组级时间覆盖
+    curation_overrides: 组级筛选覆盖
+    archive_overrides: 组级存档覆盖
+
+  subreddit_buckets:
+    core: 核心社区，优先抓取
+    scenario: 场景社区，用于观察真实使用情境
+    adjacent: 邻近社区，用于发现跨品类痛点和迁移表达
+    competitor: 竞品社区，用于观察买前对比、抱怨、迁移原因
+    watchlist: 观察名单，低频扫描但可能给出意外信号
+
+  keyword_buckets:
+    category: 品类词
+    pain_points: 痛点词
+    feature_requests: 功能诉求词
+    use_cases: 使用场景词
+    buying_intent: 购买意图词
+    competitor_keywords: 竞品词
+
+  sentiment_values:
+    positive: 正向
+    neutral: 中性
+    negative: 负向
+    mixed: 正负混合
+
+  priority_levels:
+    P1: 立即行动
+    P2: 尽快验证
+    P3: 持续观察
+
+  theme_status:
+    single_signal: 单点信号
+    repeated_issue: 重复问题
+    emerging_trend: 新兴趋势
+    consensus: 稳定共识
+
+  theme_memory_fields_dictionary:
+    theme_key: 主题唯一键
+    theme_name_cn: 主题中文名
+    first_seen_at: 首次出现时间
+    last_seen_at: 最近命中时间
+    hit_count: 命中次数
+    matched_groups: 命中监控组
+    signal_tags: 主题关联信号标签
+    representative_quotes: 代表性原声
+    status: 主题当前状态
+    recommended_watch_action: 建议跟踪动作
+
+  report_fields_dictionary:
+    archive_status: 存档状态（new_archive = 新建；merged_into_existing = 合并进历史；shortlisted_only = 暂不入档）
+    owner_suggested: 建议负责人
+    evidence_count: 证据数量 / 命中次数
+    representative_quote: 代表性原声
+    theme_name_cn: 主题中文名
+    theme_status: 主题状态
+
+business_context:
+  market: Amazon US # 当前默认市场
+  category_focus: "AI 眼镜配件 / 智能眼镜配件" # 默认测试品类
+  current_focus:
+    - 产品开发
+    - 运营
+  banned_assumptions:
+    - "不要把单条吐槽直接上升为共性需求"
+    - "不要只按热度排序，忽略高质量低热度信号"
+    - "不要把用户情绪当作完整结论，必须结合评论上下文"
+    - "不要因为同一帖子出现在多个监控组，就误判为多个独立证据"
+  default_owner_mapping:
+    product: 产品开发
+    operations: 运营
+    supply_chain: 供应链
+    content: 内容/营销
+    customer_support: 客服
+
+curation_defaults:
+  include_signals:
+    - pain_point # 用户痛点
+    - feature_request # 功能诉求
+    - buying_question # 购买问题 / 购买前咨询
+    - buying_intent # 购买意图
+    - use_case # 使用场景
+    - product_failure # 产品故障 / 失效
+    - competitor_mention # 提及竞品
+    - comparison # 对比讨论
+    - workaround # 替代做法 / 土办法 / 绕过方案
+    - support_issue # 使用疑问 / 售后问题
+    - sentiment_positive # 正向情绪 / 正面反馈
+    - sentiment_negative # 负向情绪 / 负面反馈
+    - emerging_trend # 新兴趋势
+    - objection # 购买顾虑 / 使用顾虑
+    - unmet_need # 未满足需求
+    - review_risk # 潜在差评风险
+    - support_confusion # 容易误解或不会用
+
+  exclude_content:
+    - memes # 梗图
+    - low_effort_jokes # 低信息量玩笑
+    - irrelevant_politics # 无关政治内容
+    - repost_without_new_information # 无新增信息的重复贴
+    - vague_rant_without_product_context # 没有产品上下文的情绪发泄
+    - link_dump_without_discussion # 只有链接、没有讨论
+
+  prioritize:
+    - "用户原话足够具体的内容"
+    - "能直接指导产品迭代的痛点"
+    - "能直接指导文案/FAQ/客服的表达"
+    - "评论区存在重复共识的帖子"
+    - "竞品被反复提及优缺点的帖子"
+
+  min_post_score_for_report: 65 # 进入报告的最低分
+  min_voice_score_for_archive: 80 # 进入原声存档的最低分
+  min_repeat_count_for_theme_upgrade: 2 # 主题升级的最低重复次数
+
+scoring:
+  weights:
+    relevance: 3 # 相关度
+    pain_intensity: 3 # 痛点强度
+    repeat_potential: 2 # 重复潜力
+    commercial_value: 2 # 商业价值
+    actionability: 1 # 可行动性
+    engagement_signal: 1 # 互动强度
+
+  archive_bonus:
+    exact_user_language: 10 # 原话具体可复用
+    strong_buying_intent: 8 # 购买意图强烈
+    repeated_in_comments: 8 # 评论区重复出现
+    competitor_comparison: 6 # 竞品对比清晰
+    vivid_pain_description: 8 # 痛点描述鲜明
+    reusable_copywriting: 6 # 可直接转化为文案
+
+reporting:
+  output_language: zh-CN # 中文输出
+  preserve_original_quotes_language: true # 保留英文原声原文
+  generate_group_reports_separately: true # 是否分组输出报告
+  generate_master_summary: true # 是否额外生成总览摘要
+  master_summary_name: "Reddit 多组监控总览" # 多组汇总标题
+  max_daily_items_per_group: 6 # 每组日报最多展示多少条重点信号
+  max_weekly_clusters_per_group: 5 # 每组周报最多展示多少个主题簇
+
+  rendering_preferences:
+    tables_first: true # 报告默认优先使用 Markdown 表格
+    executive_summary_format: table # 摘要使用表格
+    signals_format: table # 高价值信号使用表格
+    action_items_format: table # 产品/运营动作使用表格
+    archive_entries_format: table # 原声存档使用表格
+    shortlist_format: table # shortlist 使用表格
+    decision_board_format: table # 决策板使用表格
+    allow_notes_below_tables: true # 表格放不下时允许补充短说明
+
+  daily_sections:
+    - executive_summary # 摘要结论
+    - top_signals # 高价值信号
+    - product_development_actions # 产品开发动作
+    - operations_actions # 运营动作
+    - competitor_watch # 竞品观察
+    - new_voice_archive_entries # 新增用户原声存档
+    - manual_review_shortlist # 待人工复核清单
+    - preference_feedback # 偏好反馈
+
+  weekly_sections:
+    - weekly_summary # 周度摘要
+    - theme_clusters # 主题聚类
+    - product_recommendations # 产品建议
+    - operations_recommendations # 运营建议
+    - competitor_landscape # 竞品格局
+    - trend_watch # 趋势观察
+    - new_voice_archive_entries # 新增用户原声存档
+    - decision_board # 决策板
+
+  signal_card_required_fields:
+    - group_id # 来源监控组 ID
+    - group_name_cn # 来源监控组中文名
+    - subreddit # 来源子贴吧
+    - post_title # 原帖标题
+    - permalink # 原链接
+    - signal_tags # 信号标签
+    - summary_cn # 中文结论
+    - exact_quote # 用户原声摘录
+    - product_implication # 产品动作
+    - operations_implication # 运营动作
+    - archive_status # 存档状态
+    - priority # 优先级
+
+  voice_archive_required_fields:
+    - archive_id # 存档编号
+    - matched_groups # 命中的监控组
+    - exact_quote # 用户原声
+    - summary_cn # 中文摘要
+    - signal_tags # 信号标签
+    - business_use_tags # 业务用途标签
+    - why_valuable # 为什么有价值
+    - recommended_action # 建议动作
+
+  theme_cluster_required_fields:
+    - theme_name_cn # 主题名
+    - theme_status # 主题状态
+    - matched_groups # 命中的监控组
+    - evidence_count # 证据数量
+    - signal_tags # 主题信号标签
+    - representative_quote # 代表性原声
+    - product_implication # 产品启发
+    - operations_implication # 运营启发
+    - recommended_action # 建议动作
+
+  decision_board_buckets:
+    - immediate_action # 立即行动
+    - test_next # 尽快测试
+    - keep_monitoring # 继续监控
+
+  preference_feedback_questions:
+    - "今天这份是否有用？"
+    - "哪几条最有价值？"
+    - "哪类内容以后少给？"
+    - "是否需要增加某类信号、subreddit 或关键词？"
+
+archive:
+  enabled: true # 是否启用原声存档
+  storage_mode: memory_first_then_structured_output # 先写 memory，再输出结构化结果
+  output_path: "archives/reddit_user_voice_archive.md" # 若环境支持写文件，可同步写到此路径
+  append_mode: true # true = 追加写入
+  archive_by_group: true # 是否记录来自哪个监控组
+
+  dedupe_fields:
+    - normalized_quote # 轻度标准化原话
+    - subreddit # 来源子贴吧
+    - permalink # 原链接
+
+  extraction_rules:
+    prefer_comment_when_more_specific: true # 如果评论比主帖更具体，优先抽评论原声
+    allow_post_body_when_comment_missing: true # 若评论不足，可从主帖正文抽取原声
+    max_quotes_per_thread: 3 # 每个帖子 / 评论线程最多入档多少条原声
+    quote_min_words: 5 # 原声至少包含多少个词；过短通常信息不足
+    keep_sentence_level_quotes: true # 尽量按完整句子摘录原声，避免截断核心语义
+
+  normalization_rules:
+    lowercase_for_dedupe: true # 查重时统一转小写
+    collapse_whitespace: true # 合并多余空格
+    trim_punctuation: true # 去掉首尾无意义标点
+    keep_brand_names: true # 保留品牌名，避免丢失竞品信息
+    keep_numbers_and_time_context: true # 保留数字、时长、频次等关键信息
+
+  merge_rules:
+    merge_same_permalink: true # 相同 permalink 优先合并
+    merge_same_normalized_quote: true # 标准化后原声一致则合并
+    append_new_matched_groups: true # 合并时补充命中的监控组
+    increment_repeat_count_on_duplicate: true # 合并时增加 repeat_count
+    refresh_archived_at_on_duplicate: true # 合并时更新最近命中时间
+
+  theme_memory_rules:
+    representative_quotes_limit: 3 # 每个主题最多保留多少条代表性原声
+    promote_when_cross_group_hit: true # 若原声被多个组命中，则提高主题权重
+    require_actionable_summary: true # 主题记忆里必须沉淀可执行摘要
+
+  archive_fields:
+    - archive_id # 存档唯一编号
+    - archived_at # 存档时间
+    - source_type # 来源类型
+    - group_id # 主命中组 ID
+    - matched_groups # 命中的监控组列表
+    - subreddit # 来源子贴吧
+    - post_title # 原帖标题
+    - permalink # 原帖/原评论链接
+    - author # 作者名
+    - exact_quote # 用户原声原文
+    - normalized_quote # 轻度标准化原声
+    - summary_cn # 中文摘要
+    - signal_tags # 信号标签
+    - business_use_tags # 业务用途标签
+    - sentiment # 情绪倾向
+    - priority # 优先级
+    - repeat_count # 重复出现次数
+    - why_valuable # 为什么有价值
+    - product_implication # 对产品的启发
+    - operations_implication # 对运营的启发
+    - recommended_action # 建议动作
+
+  escalate_when:
+    repeat_count_gte: 2 # 当重复次数 >= 2 时升级为重点主题
+    priority_in:
+      - P1 # 高优先级
+      - P2 # 中高优先级
+
+# monitor_groups = 多组监控列表
+# 说明：
+# 1. 每个监控组都能独立配置：目标、子贴吧、关键词、侧重点、存档规则。
+# 2. 同一 subreddit 或关键词可以出现在多个组里，但用途不同。
+# 3. 这份默认配置已内置 2 组测试值，方便直接跑通验证。
+monitor_groups:
+  - group_id: ai_glasses_core_users # 监控组唯一 ID
+    group_name_cn: "AI 眼镜配件｜核心用户与痛点监控" # 监控组中文名
+    enabled: true # 是否启用
+    priority: 5 # 组优先级
+    report_mode: separate # separate = 单独出组报告
+
+    goal_cn:
+      - "发现智能眼镜用户的真实痛点与抱怨"
+      - "识别可转化为配件机会的场景，如鼻托、防滑、镜片保护、收纳、充电"
+      - "沉淀可直接进入 Listing / FAQ / 客服的话术原声"
+
+    report_focus_cn:
+      - "优先展示用户痛点、FAQ 风险与配件缺口"
+      - "优先保留可直接转成 Listing / FAQ / 客服的话术"
+
+    archive_focus_cn:
+      - "具体描述佩戴不适、打滑、续航焦虑、收纳/充电需求的原声"
+      - "同一痛点在评论区重复出现的表达"
+
+    product_lines:
+      - "防滑鼻托 / anti-slip nose pads"
+      - "镜腿防滑套 / temple grips"
+      - "镜片保护件 / lens protector"
+      - "便携收纳盒 / travel case"
+      - "桌面充电底座 / desk charging stand"
+
+    target_users:
+      - "Meta / 智能眼镜日常佩戴用户"
+      - "通勤、出差、轻运动用户"
+      - "已经购买或正在考虑购买 Ray-Ban Meta 的美国用户"
+
+    schedule_override: {} # 如需单独改这个组的时间，可在此覆盖全局 schedule
+
+    subreddits:
+      core:
+        - name: r/SmartGlasses
+          priority: 5
+          note: "智能眼镜主讨论区，适合看品类共性问题与购买讨论"
+        - name: r/RayBanStories
+          priority: 5
+          note: "Ray-Ban Meta 老牌用户社区，适合挖故障、抱怨、真实体验"
+
+      scenario:
+        - name: r/augmentedreality
+          priority: 4
+          note: "适合看什么场景真正有用，以及用户对日常场景的期待"
+
+      adjacent:
+        - name: r/glasses
+          priority: 3
+          note: "适合挖舒适性、鼻托、镜片、佩戴压力、脸型适配问题"
+        - name: r/wearables
+          priority: 3
+          note: "适合看可穿戴设备共性抱怨，如续航、舒适、坚持使用门槛"
+
+      competitor:
+        - name: r/RaybanMeta
+          priority: 4
+          note: "Ray-Ban Meta 讨论区，适合买前对比、问题集中点、迁移原因"
+
+      watchlist:
+        - name: r/EDC
+          priority: 2
+          note: "观察收纳、随身携带、日常装备整合场景"
+        - name: r/gadgets
+          priority: 2
+          note: "观察大众科技用户如何评价智能眼镜与相关配件"
+
+    keywords:
+      category:
+        - "smart glasses"
+        - "AI glasses"
+        - "glasses accessories"
+        - "Ray-Ban Meta"
+        - "smart glasses case"
+
+      pain_points:
+        - "uncomfortable"
+        - "slipping"
+        - "too heavy"
+        - "battery life"
+        - "charging issue"
+        - "scratched lenses"
+        - "nose pain"
+        - "ear fatigue"
+
+      feature_requests:
+        - "wish it had"
+        - "need a case"
+        - "better nose pads"
+        - "anti-slip"
+        - "lens cover"
+        - "sweat proof"
+        - "charging stand"
+
+      use_cases:
+        - "commuting"
+        - "travel"
+        - "running"
+        - "cycling"
+        - "work calls"
+        - "daily wear"
+
+      buying_intent:
+        - "worth it"
+        - "which should I buy"
+        - "recommend"
+        - "vs"
+        - "should I get"
+
+      competitor_keywords:
+        - "Ray-Ban Meta"
+        - "XREAL"
+        - "Rokid"
+        - "INMO"
+        - "Bose Frames"
+        - "Solos"
+
+    curation_overrides:
+      include_signals:
+        - pain_point # 用户痛点
+        - feature_request # 功能诉求
+        - buying_question # 购买问题 / 购买前咨询
+        - objection # 购买顾虑 / 使用顾虑
+        - competitor_mention # 提及竞品
+        - comparison # 对比讨论
+        - workaround # 替代做法 / 土办法 / 绕过方案
+        - review_risk # 潜在差评风险
+      exclude_content:
+        - memes # 梗图
+        - low_effort_jokes # 低信息量玩笑
+      min_post_score_for_report: 68
+
+    archive_overrides:
+      min_voice_score_for_archive: 78
+      required_business_use_tags:
+        - product_design # 产品设计
+        - listing_copy # Listing 文案
+        - faq # FAQ / 常见问题
+        - customer_support # 客服话术
+
+  - group_id: ai_glasses_competitor_scenario # 第二个测试监控组
+    group_name_cn: "AI 眼镜配件｜竞品与场景扩展监控" # 监控组中文名
+    enabled: true # 是否启用
+    priority: 4 # 组优先级
+    report_mode: separate # separate = 单独出组报告
+
+    goal_cn:
+      - "监控竞品被喜欢与被吐槽的点，提炼可差异化切入的方向"
+      - "观察 AR / 生产力 / 日常佩戴等邻近场景，寻找新配件机会"
+      - "发现可用于内容、广告、红人 Brief 的真实用户语言"
+
+    report_focus_cn:
+      - "优先展示竞品比较、场景迁移、内容表达机会"
+      - "优先提炼可转成广告、内容、红人 Brief 的真实说法"
+
+    archive_focus_cn:
+      - "包含对比维度、迁移原因、场景限制的原声"
+      - "可用于差异化定位或内容脚本的表达"
+
+    product_lines:
+      - "便携收纳与桌面充电配件"
+      - "运动防滑与稳固佩戴配件"
+      - "镜片保护与清洁配件"
+      - "办公 / 出差场景辅助配件"
+
+    target_users:
+      - "对 Ray-Ban Meta、XREAL 等智能眼镜感兴趣的潜在购买者"
+      - "重度使用智能眼镜进行通勤、办公、旅行的人群"
+      - "关注 AR / XR 新场景的早期采用者"
+
+    schedule_override: {}
+
+    subreddits:
+      core:
+        - name: r/Xreal
+          priority: 5
+          note: "XREAL 技术社区，适合看 AR/XR 产品在生产力场景中的真实体验"
+        - name: r/SmartGlasses
+          priority: 4
+          note: "继续用于追踪品类层面的对比与购买讨论"
+
+      scenario:
+        - name: r/EDC
+          priority: 4
+          note: "关注随身装备、便携、收纳、日用整合场景"
+        - name: r/augmentedreality
+          priority: 4
+          note: "观察 AR 在日常与工作场景中的真实需求"
+
+      adjacent:
+        - name: r/wearables
+          priority: 3
+          note: "观察佩戴门槛、续航抱怨、长时间使用问题"
+        - name: r/glasses
+          priority: 3
+          note: "观察传统眼镜用户对舒适性、脸型适配、镜片问题的表达"
+        - name: r/biohackers
+          priority: 3
+          note: "观察早期采用者如何把智能眼镜纳入效率、健康与实验性场景"
+
+      competitor:
+        - name: r/RaybanMeta
+          priority: 5
+          note: "继续监控 Ray-Ban Meta 社区，重点看购买对比与问题爆点"
+        - name: r/RayBanStories
+          priority: 4
+          note: "观察老用户口碑、故障、配件需求、长期使用反馈"
+
+      watchlist: []
+
+    keywords:
+      category:
+        - "AR glasses"
+        - "smart glasses"
+        - "accessories for smart glasses"
+        - "charging stand"
+        - "travel case"
+        - "lens protector"
+        - "nose pads"
+
+      pain_points:
+        - "headache"
+        - "not comfortable"
+        - "pressure"
+        - "not charging"
+        - "broken hinge"
+        - "scratched"
+        - "annoying to carry"
+
+      feature_requests:
+        - "portable case"
+        - "desk charger"
+        - "charging dock"
+        - "prescription support"
+        - "lighter"
+        - "more comfortable"
+        - "better fit"
+        - "clip on"
+        - "comfort mod"
+
+      use_cases:
+        - "productivity"
+        - "office"
+        - "travel"
+        - "daily carry"
+        - "gym"
+        - "creator"
+
+      buying_intent:
+        - "best smart glasses"
+        - "worth buying"
+        - "recommendation"
+        - "compare"
+        - "better than"
+        - "what should I buy"
+
+      competitor_keywords:
+        - "Ray-Ban Meta"
+        - "XREAL"
+        - "Rokid"
+        - "INMO"
+        - "Bose Frames"
+        - "Even Realities"
+        - "Solos"
+
+    curation_overrides:
+      include_signals:
+        - competitor_mention # 提及竞品
+        - comparison # 对比讨论
+        - use_case # 使用场景
+        - feature_request # 功能诉求
+        - buying_intent # 购买意图
+        - emerging_trend # 新兴趋势
+      exclude_content:
+        - memes # 梗图
+        - irrelevant_politics # 无关政治内容
+      min_post_score_for_report: 66
+
+    archive_overrides:
+      min_voice_score_for_archive: 76
+      required_business_use_tags:
+        - content_angle # 内容选题 / 内容角度
+        - ad_creative # 广告创意
+        - influencer_brief # 红人 Brief / 红人沟通点
+        - competitor_attack_angle # 竞品对位 / 差异化攻击点
