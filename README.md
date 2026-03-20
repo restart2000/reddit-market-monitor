@@ -5,9 +5,20 @@
 Fixed README prefix for Way to AIC repositories. Future GitHub projects under this umbrella should keep this section at the top of the README.
 
 - 官网 / Website: [waytoaic.com](https://waytoaic.com) | [www.waytoaic.com](https://www.waytoaic.com)
+  
 - 社群招募 / Community: `Way to AIC社群招募 | WaytoAIC.com`
+- <img width="794" height="598" alt="image" src="https://github.com/user-attachments/assets/d9f8bbf4-2056-4780-975d-86c885b52bab" />
+
+  
 - 公众号 / WeChat Official Account: `维正 WaytoAIC`
+  <img width="1280" height="1280" alt="image" src="https://github.com/user-attachments/assets/71c71a5c-e68a-4f30-9afb-f2b056619991" />
+
 - 知识星球 / Xiaozhixing: `AI电商之路 WaytoAIC`
+  <img width="252" height="325" alt="image" src="https://github.com/user-attachments/assets/9eccef07-0e84-45a7-a415-affcb18c928d" />
+  <img width="750" height="412" alt="image" src="https://github.com/user-attachments/assets/4e99fbc3-1981-4fee-b113-c9821141102d" />
+
+
+  
 - AIC = `AI Commerce`
 
 在 AI 重塑商业的时代，我们希望和每一个拥抱 AI 的卖家，找到场景，定义问题，积累能力，设计系统，共同通往 AI 电商之路。
